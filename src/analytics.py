@@ -16,15 +16,15 @@ class Sentiment(str, Enum):
     NEGATIVE = "Negative"
 
 class IssueReport(BaseModel):
-    category: Category = Field(description="Категория проблемы")
-    sentiment: Sentiment = Field(description="Тональность отзыва")
-    summary: str = Field(description="Краткая суть проблемы")
-    affected_element: str = Field(description="Конкретный объект")
-    severity_score: int = Field(description="Оценка критичности от 1 до 5")
+    category: Category = Field(description="Category of the issue")
+    sentiment: Sentiment = Field(description="Sentiment of the feedback")
+    summary: str = Field(description="Brief summary of the issue")
+    affected_element: str = Field(description="Specific element affected")
+    severity_score: int = Field(description="Severity score from 1 to 5")
 
 class BatchAnalyticsReport(BaseModel):
-    total_analyzed: int = Field(description="Количество разобранных отзывов")
-    top_complaint: str = Field(description="Главная проблема")
+    total_analyzed: int = Field(description="Total number of reviews analyzed")
+    top_complaint: str = Field(description="Main complaint")
     issues: List[IssueReport]
 
 class CommunityAnalyticsEngine:
