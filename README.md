@@ -1,11 +1,13 @@
-So there is my first LLM project. Start it with following commands in VSCode:<br>
+Start it with following commands in VSCode:<br>
 
 python -m venv .venv<br>
 .\.venv\Scripts\Activate.ps1<br>
 
 pip install -r text.txt<br>
 
-echo "OPENAI_API_KEY=sk-demo-mock-key" > .env<br>
+echo "GROQ_API_KEY=sk-demo-mock-key" > .env<br>
+
+(Add your personal key to env.)<br>
 
 streamlit run app.py<br>
 
