@@ -1,3 +1,7 @@
+from datetime import datetime
+import json
+import os
+import sqlite3
 from enum import Enum
 from typing import List
 from pydantic import BaseModel, Field
@@ -28,9 +32,63 @@ class BatchAnalyticsReport(BaseModel):
     issues: List[IssueReport]
 
 class CommunityAnalyticsEngine:
-    def __init__(self):
+    def __init__(self, db_file: str = "data/analytics_history.db"):
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
         self.structured_llm = self.llm.with_structured_output(BatchAnalyticsReport)
+        self.db_file = db_file
+        self._init_db()
+
+    def _init_db(self): 
+        os.makedirs(os.path.dirname(self.db_file), exist_ok=True)
+        with sqlite3.connect(self.db_file) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS feedback_analytics (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            timestamp TEXT NOT NULL,
+                            top_complaint TEXT,
+                            category TEXT,
+                            sentiment TEXT,
+                            summary TEXT,
+                            affected_element TEXT,
+                            severity_score INTEGER
+                        )
+                    """)
+        conn.commit()
+
+    def _save_to_db(self, report: BatchAnalyticsReport):
+        try:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with sqlite3.connect(self.db_file) as conn:
+                cursor = conn.cursor()
+                for issue in report.issues:
+                    cursor.execute(
+                        """
+                                    INSERT INTO feedback_analytics (
+                                        timestamp, top_complaint, category, sentiment, summary, affected_element, severity_score
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                """,
+                        (
+                            timestamp,
+                            report.top_complaint,
+                            (
+                                issue.category.value
+                                if isinstance(issue.category, Enum)
+                                else issue.category
+                            ),
+                            (
+                                issue.sentiment.value
+                                if isinstance(issue.sentiment, Enum)
+                                else issue.sentiment
+                            ),
+                            issue.summary,
+                            issue.affected_element,
+                            issue.severity_score,
+                        ),
+                    )
+                conn.commit()
+        except Exception as e:
+         print(f"Warning: unable to save to SQLite DB: {e}")
 
     def analyze_feedback_batch(self, feedback_list: List[str]) -> BatchAnalyticsReport:
         try:
@@ -43,7 +101,7 @@ class CommunityAnalyticsEngine:
             ])
             formatted_reviews = "\n---\n".join(feedback_list)
             chain = prompt | self.structured_llm
-            return chain.invoke({"reviews": formatted_reviews})
+            report = chain.invoke({"reviews": formatted_reviews})
         except Exception:
             mock_issues = [
                 IssueReport(
@@ -68,8 +126,10 @@ class CommunityAnalyticsEngine:
                     severity_score=4
                 )
             ]
-            return BatchAnalyticsReport(
+            report = BatchAnalyticsReport(
                 total_analyzed=len(feedback_list),
                 top_complaint="M4A1 Weapon Balance & Chernarus FPS Drops",
                 issues=mock_issues[:len(feedback_list)] if len(feedback_list) > 0 else mock_issues
             )
+        self._save_to_db(report)
+        return report 
