@@ -5,7 +5,7 @@ import sqlite3
 from enum import Enum
 from typing import List
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
 class Category(str, Enum):
@@ -33,7 +33,7 @@ class BatchAnalyticsReport(BaseModel):
 
 class CommunityAnalyticsEngine:
     def __init__(self, db_file: str = "data/analytics_history.db"):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+        self.llm = ChatGroq(model="qwen/qwen3.8-27b", temperature=0.0)
         self.structured_llm = self.llm.with_structured_output(BatchAnalyticsReport)
         self.db_file = db_file
         self._init_db()
